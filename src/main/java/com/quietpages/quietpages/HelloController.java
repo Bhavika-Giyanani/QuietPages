@@ -11,17 +11,27 @@ import java.net.URL;
 
 public class HelloController {
 
-    @FXML private BorderPane rootPane;
-    @FXML private VBox       sidebar;
-    @FXML private StackPane  contentArea;
+    @FXML
+    private BorderPane rootPane;
+    @FXML
+    private VBox sidebar;
+    @FXML
+    private StackPane contentArea;
 
-    @FXML private Button btnHome;
-    @FXML private Button btnLibrary;
-    @FXML private Button btnCollections;
-    @FXML private Button btnOnlineBooks;
-    @FXML private Button btnSettings;
-    @FXML private Button btnThemes;
-    @FXML private Button btnConnect;
+    @FXML
+    private Button btnHome;
+    @FXML
+    private Button btnLibrary;
+    @FXML
+    private Button btnCollections;
+    @FXML
+    private Button btnOnlineBooks;
+    @FXML
+    private Button btnSettings;
+    @FXML
+    private Button btnThemes;
+    @FXML
+    private Button btnConnect;
 
     @FXML
     public void initialize() {
@@ -29,11 +39,35 @@ public class HelloController {
         setActiveNav(btnLibrary);
     }
 
-    @FXML private void onHome()        { loadTabSafe("home-view.fxml");         setActiveNav(btnHome); }
-    @FXML private void onLibrary()     { showLibrary();                          setActiveNav(btnLibrary); }
-    @FXML private void onCollections() { loadTabSafe("collections-view.fxml");  setActiveNav(btnCollections); }
-    @FXML private void onOnlineBooks() { loadTabSafe("online-books-view.fxml"); setActiveNav(btnOnlineBooks); }
-    @FXML private void onSettings()    { loadTabSafe("settings-view.fxml");     setActiveNav(btnSettings); }
+    @FXML
+    private void onHome() {
+        loadTabSafe("home-view.fxml");
+        setActiveNav(btnHome);
+    }
+
+    @FXML
+    private void onLibrary() {
+        showLibrary();
+        setActiveNav(btnLibrary);
+    }
+
+    @FXML
+    private void onCollections() {
+        loadTabSafe("collections-view.fxml");
+        setActiveNav(btnCollections);
+    }
+
+    @FXML
+    private void onOnlineBooks() {
+        loadTabSafe("online-books-view.fxml");
+        setActiveNav(btnOnlineBooks);
+    }
+
+    @FXML
+    private void onSettings() {
+        loadTabSafe("settings-view.fxml");
+        setActiveNav(btnSettings);
+    }
 
     private void showLibrary() {
         loadTabSafe("library-view.fxml");
@@ -54,8 +88,13 @@ public class HelloController {
             FXMLLoader loader = new FXMLLoader(resource);
             Node view = loader.load();
             contentArea.getChildren().setAll(view);
-        } catch (IOException e) {
+        } catch (Exception e) {
             System.err.println("[Shell] Failed to load " + fxmlName + ": " + e.getMessage());
+            Throwable cause = e.getCause();
+            while (cause != null) {
+                System.err.println("  Caused by: " + cause);
+                cause = cause.getCause();
+            }
             showPlaceholder(fxmlName);
         }
     }
@@ -78,6 +117,7 @@ public class HelloController {
                 b.getStyleClass().remove("nav-active");
             }
         }
-        if (active != null) active.getStyleClass().add("nav-active");
+        if (active != null)
+            active.getStyleClass().add("nav-active");
     }
 }

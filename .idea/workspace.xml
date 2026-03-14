@@ -5,38 +5,27 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="814c073a-3725-488d-8004-0aef73fa35c6" name="Changes" comment="initial commit">
-      <changelist_data name="bhavikavgiyanani@gmail.com" email="" />
-      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.mvn/wrapper/maven-wrapper.jar" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.mvn/wrapper/maven-wrapper.properties" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/mvnw" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/mvnw.cmd" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/HelloApplication.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/HelloController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/controller/BookCardController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/controller/EditBookInfoController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/controller/LibraryController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/db/BookDAO.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/db/DatabaseManager.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/model/Book.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/service/LibraryService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/util/EpubImporter.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/module-info.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/com/quietpages/quietpages/book-card.fxml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/com/quietpages/quietpages/edit-book-info.fxml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/com/quietpages/quietpages/hello-view.fxml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/com/quietpages/quietpages/library-view.fxml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/com/quietpages/quietpages/library.css" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/controller/OnlineBooksController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/model/DownloadEntry.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/model/OnlineSite.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/model/OnlineSiteDAO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/service/OnlineBooksService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/com/quietpages/quietpages/online-books-view.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/HelloController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/HelloController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/db/DatabaseManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/db/DatabaseManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/module-info.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/module-info.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/com/quietpages/quietpages/library.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/com/quietpages/quietpages/library.css" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ChangesViewManager">
+    <option name="groupingKeys">
+      <option value="directory" />
+    </option>
   </component>
   <component name="Git.Settings">
     <option name="PREVIOUS_COMMIT_AUTHORS">
@@ -87,6 +76,15 @@
       <option name="presentableId" value="Default" />
       <updated>1773498013815</updated>
     </task>
+    <task id="LOCAL-00001" summary="initial commit">
+      <option name="closed" value="true" />
+      <created>1773523287470</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1773523287470</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">

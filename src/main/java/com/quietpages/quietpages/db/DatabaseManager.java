@@ -1,21 +1,16 @@
 package com.quietpages.quietpages.db;
 
 import java.io.File;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 
 /**
  * Manages the single SQLite connection for QuietPages.
+ * One connection, opened once, kept open for the app lifetime.
  *
- * Database file location:
+ * Database file:
  *   Windows : %APPDATA%\QuietPages\quietpages.db
  *   macOS   : ~/Library/Application Support/QuietPages/quietpages.db
  *   Linux   : ~/.config/QuietPages/quietpages.db
- *
- * Call DatabaseManager.getInstance() anywhere to get the shared instance.
- * Call DatabaseManager.getInstance().getConnection() to run SQL.
  */
 public class DatabaseManager {
 
@@ -26,23 +21,28 @@ public class DatabaseManager {
 
     // ── Singleton ─────────────────────────────────────────────────────────────
     private DatabaseManager() {
-        initConnection();
+        openConnection();
         createTables();
+        // Seed is done AFTER constructor completes — avoids StackOverflow
+        // because seedDefaultSites() creates an OnlineSiteDAO which calls
+        // getInstance(), which would re-enter this constructor.
     }
 
     public static synchronized DatabaseManager getInstance() {
         if (instance == null) {
             instance = new DatabaseManager();
+            // Seed only after instance is fully assigned —
+            // so re-entrant getInstance() calls return the same instance.
+            instance.seedDefaultSites();
         }
         return instance;
     }
 
     // ── Connection ────────────────────────────────────────────────────────────
-    private void initConnection() {
+    private void openConnection() {
         try {
             String dbPath = resolveDbPath();
             connection = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
-            // Enable WAL mode for better concurrent performance
             try (Statement st = connection.createStatement()) {
                 st.execute("PRAGMA journal_mode=WAL;");
                 st.execute("PRAGMA foreign_keys=ON;");
@@ -53,14 +53,8 @@ public class DatabaseManager {
         }
     }
 
+    /** Returns the single shared connection. Never null after construction. */
     public Connection getConnection() {
-        try {
-            if (connection == null || connection.isClosed()) {
-                initConnection();
-            }
-        } catch (SQLException e) {
-            initConnection();
-        }
         return connection;
     }
 
@@ -98,10 +92,8 @@ public class DatabaseManager {
                 date_added       TEXT    NOT NULL DEFAULT (datetime('now')),
                 last_read        TEXT,
                 cover_image      BLOB
-            );
-            """;
+            );""";
 
-        // Reading sessions table — used by Statistics tab teammate
         String createSessions = """
             CREATE TABLE IF NOT EXISTS reading_sessions (
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -109,43 +101,45 @@ public class DatabaseManager {
                 started_at  TEXT NOT NULL,
                 ended_at    TEXT,
                 pages_read  INTEGER DEFAULT 0
-            );
-            """;
+            );""";
 
-        // Annotations table — used by Collections tab (you)
         String createAnnotations = """
             CREATE TABLE IF NOT EXISTS annotations (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                book_id     INTEGER NOT NULL REFERENCES books(id) ON DELETE CASCADE,
-                type        TEXT    NOT NULL DEFAULT 'HIGHLIGHT',
-                content     TEXT    NOT NULL DEFAULT '',
-                note        TEXT    DEFAULT '',
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                book_id      INTEGER NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+                type         TEXT    NOT NULL DEFAULT 'HIGHLIGHT',
+                content      TEXT    NOT NULL DEFAULT '',
+                note         TEXT    DEFAULT '',
                 cfi_location TEXT,
-                chapter     TEXT    DEFAULT '',
-                created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
-                color       TEXT    DEFAULT '#FFD700'
-            );
-            """;
+                chapter      TEXT    DEFAULT '',
+                created_at   TEXT    NOT NULL DEFAULT (datetime('now')),
+                color        TEXT    DEFAULT '#FFD700'
+            );""";
 
-        // Bookmarks table — used by Collections tab (you)
         String createBookmarks = """
             CREATE TABLE IF NOT EXISTS bookmarks (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                book_id     INTEGER NOT NULL REFERENCES books(id) ON DELETE CASCADE,
-                label       TEXT    DEFAULT '',
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                book_id      INTEGER NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+                label        TEXT    DEFAULT '',
                 cfi_location TEXT,
-                chapter     TEXT    DEFAULT '',
-                created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
-            );
-            """;
+                chapter      TEXT    DEFAULT '',
+                created_at   TEXT    NOT NULL DEFAULT (datetime('now'))
+            );""";
 
-        // App settings table — used by Settings tab teammate
         String createSettings = """
             CREATE TABLE IF NOT EXISTS app_settings (
                 key   TEXT PRIMARY KEY,
                 value TEXT NOT NULL DEFAULT ''
-            );
-            """;
+            );""";
+
+        String createOnlineSites = """
+            CREATE TABLE IF NOT EXISTS online_sites (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                title      TEXT    NOT NULL,
+                url        TEXT    NOT NULL,
+                is_default INTEGER NOT NULL DEFAULT 0,
+                icon_data  BLOB
+            );""";
 
         try (Statement st = connection.createStatement()) {
             st.execute(createBooks);
@@ -153,9 +147,39 @@ public class DatabaseManager {
             st.execute(createAnnotations);
             st.execute(createBookmarks);
             st.execute(createSettings);
+            st.execute(createOnlineSites);
             System.out.println("[DB] Schema ready.");
         } catch (SQLException e) {
             throw new RuntimeException("Failed to create database schema", e);
+        }
+    }
+
+    // ── Seed default online sites ─────────────────────────────────────────────
+    private void seedDefaultSites() {
+        // Check directly via SQL — do NOT create OnlineSiteDAO here (avoids
+        // re-entrant getInstance() calls during construction).
+        try (Statement st = connection.createStatement();
+             ResultSet rs = st.executeQuery(
+                     "SELECT COUNT(*) FROM online_sites WHERE is_default=1")) {
+            if (rs.next() && rs.getInt(1) > 0) return; // already seeded
+        } catch (SQLException e) {
+            System.err.println("[DB] Seed check failed: " + e.getMessage());
+            return;
+        }
+
+        String sql = "INSERT INTO online_sites (title, url, is_default) VALUES (?,?,1)";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, "Gutenberg");
+            ps.setString(2, "https://www.gutenberg.org/");
+            ps.executeUpdate();
+
+            ps.setString(1, "Standard Ebooks");
+            ps.setString(2, "https://standardebooks.org/");
+            ps.executeUpdate();
+
+            System.out.println("[DB] Default online sites seeded.");
+        } catch (SQLException e) {
+            System.err.println("[DB] Seed insert failed: " + e.getMessage());
         }
     }
 

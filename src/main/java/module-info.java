@@ -15,7 +15,9 @@ module com.quietpages.quietpages {
 
     opens com.quietpages.quietpages to javafx.fxml;
     opens com.quietpages.quietpages.controller to javafx.fxml;
-    opens com.quietpages.quietpages.model to javafx.base;
+    opens com.quietpages.quietpages.model to javafx.base, javafx.fxml;
+    opens com.quietpages.quietpages.service to javafx.fxml;
+    opens com.quietpages.quietpages.db to javafx.fxml;
 
     exports com.quietpages.quietpages;
     exports com.quietpages.quietpages.controller;
