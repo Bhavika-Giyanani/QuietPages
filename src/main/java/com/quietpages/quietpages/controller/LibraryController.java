@@ -556,10 +556,10 @@ public class LibraryController {
     }
 
     private void removeBook(Book book) {
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle("Remove Book");
-        alert.setHeaderText("Remove \"" + book.getTitle() + "\"?");
-        alert.setContentText("This removes it from your library but does not delete the file.");
+        Alert alert = createStyledAlert(
+                "Remove Book",
+                "Remove \"" + book.getTitle() + "\"?",
+                "This removes it from your library but does not delete the file.");
         Optional<ButtonType> result = alert.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
             service.remove(book.getId());
@@ -579,7 +579,49 @@ public class LibraryController {
         lbl.setStyle("-fx-text-fill: #C0284A; -fx-font-weight: bold;");
         return lbl;
     }
+    // ── Styled alert helper ───────────────────────────────────────────────────
+    private Alert createStyledAlert(String title, String header, String content) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setGraphic(null);
 
+        javafx.scene.control.Label headerLbl = new javafx.scene.control.Label(header);
+        headerLbl.setStyle(
+                "-fx-font-size: 14px; -fx-font-weight: bold;" +
+                        "-fx-text-fill: #DDDDDD; -fx-wrap-text: true; -fx-max-width: 340;");
+
+        javafx.scene.control.Label contentLbl = new javafx.scene.control.Label(content);
+        contentLbl.setStyle(
+                "-fx-font-size: 12px; -fx-text-fill: #999999;" +
+                        "-fx-wrap-text: true; -fx-max-width: 340;");
+
+        javafx.scene.layout.VBox box = new javafx.scene.layout.VBox(8, headerLbl, contentLbl);
+        box.setPadding(new javafx.geometry.Insets(20, 20, 12, 20));
+        box.setStyle("-fx-background-color: #333333;");
+
+        alert.getDialogPane().setHeader(null);
+        alert.getDialogPane().setGraphic(null);
+        alert.getDialogPane().setContent(box);
+
+        alert.getDialogPane().setStyle(
+                "-fx-background-color: #333333;" +
+                        "-fx-border-color: #3A3A3A;" +
+                        "-fx-border-width: 1;" +
+                        "-fx-border-radius: 6;" +
+                        "-fx-background-radius: 6;");
+
+        alert.getDialogPane().getStylesheets().add(
+                java.util.Objects.requireNonNull(getClass().getResource(
+                        "/com/quietpages/quietpages/library.css")).toExternalForm());
+
+        javafx.scene.Node buttonBar = alert.getDialogPane().lookup(".button-bar");
+        if (buttonBar != null) {
+            buttonBar.setStyle("-fx-background-color: #333333; -fx-padding: 0 12 12 12;");
+        }
+
+        return alert;
+    }
     private void showNotification(String message) {
         // Simple tooltip-style notification — can be upgraded with ControlsFX Notifications
         Platform.runLater(() -> {

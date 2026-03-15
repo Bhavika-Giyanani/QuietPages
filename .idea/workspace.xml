@@ -5,16 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="814c073a-3725-488d-8004-0aef73fa35c6" name="Changes" comment="initial commit">
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/controller/OnlineBooksController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/model/DownloadEntry.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/model/OnlineSite.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/model/OnlineSiteDAO.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/service/OnlineBooksService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/com/quietpages/quietpages/online-books-view.fxml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/HelloController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/HelloController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/db/DatabaseManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/db/DatabaseManager.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/module-info.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/module-info.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/controller/LibraryController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/controller/LibraryController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/controller/OnlineBooksController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/quietpages/quietpages/controller/OnlineBooksController.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/resources/com/quietpages/quietpages/library.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/com/quietpages/quietpages/library.css" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />

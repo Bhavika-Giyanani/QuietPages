@@ -24,17 +24,12 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 
-/**
- * Controller for online-books-view.fxml.
- *
- * WebView is created lazily via reflection-free code in initialize().
- * No javafx.web types appear as @FXML fields — this avoids FXML loader
- * reflection issues with the javafx.web module.
- */
 public class OnlineBooksController {
 
     // ── FXML — Toolbar ────────────────────────────────────────────────────────
@@ -54,20 +49,19 @@ public class OnlineBooksController {
     @FXML private Label     lblSelectSite;
 
     // ── FXML — Downloads panel ────────────────────────────────────────────────
-    @FXML private VBox downloadsPanel;
-    @FXML private VBox downloadsListVBox;
+    @FXML private VBox  downloadsPanel;
+    @FXML private VBox  downloadsListVBox;
     @FXML private Label lblNoDownloads;
 
-    // ── State — NO javafx.web types as fields ────────────────────────────────
-    private final OnlineBooksService service       = OnlineBooksService.getInstance();
+    // ── State ─────────────────────────────────────────────────────────────────
+    private final OnlineBooksService service        = OnlineBooksService.getInstance();
     private final LibraryService     libraryService = LibraryService.getInstance();
 
     private ObservableList<OnlineSite>    sites     = FXCollections.observableArrayList();
     private ObservableList<DownloadEntry> downloads = FXCollections.observableArrayList();
 
-    // WebView held as Object to avoid any class-loading at field-declaration time
-    private Object  webViewObj;    // actually javafx.scene.web.WebView
-    private Object  engineObj;     // actually javafx.scene.web.WebEngine
+    private Object webViewObj;   // javafx.scene.web.WebView
+    private Object engineObj;    // javafx.scene.web.WebEngine
 
     private OnlineSite activeSite = null;
 
@@ -76,38 +70,54 @@ public class OnlineBooksController {
     public void initialize() {
         downloadsPanel.setVisible(false);
         downloadsPanel.setManaged(false);
-
         setupWebView();
         loadSites();
     }
 
+    // Tracks URLs we have already queued for download to prevent duplicates
+    private final java.util.Set<String> downloadedUrls =
+            java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+
     private void setupWebView() {
-        // Create WebView via reflection-safe direct instantiation
-        // (javafx.web is already required in module-info)
         javafx.scene.web.WebView wv = new javafx.scene.web.WebView();
         javafx.scene.web.WebEngine we = wv.getEngine();
-
         webViewObj = wv;
         engineObj  = we;
-
         wv.setVisible(false);
 
-        // Detect EPUB/PDF navigation and intercept as a download
+        // Use createPopupHandler to intercept file downloads.
+        // The location listener only shows/hides the placeholder.
         we.locationProperty().addListener((obs, oldUrl, newUrl) -> {
             if (newUrl == null || newUrl.isBlank()) return;
             String lower = newUrl.toLowerCase();
+
+            // Intercept EPUB/PDF — cancel navigation, start download
             if (lower.endsWith(".epub") || lower.endsWith(".pdf")) {
-                // Go back, then download the file ourselves
-                we.executeScript("history.back()");
-                startDownload(newUrl);
+                if (!downloadedUrls.contains(newUrl)) {
+                    downloadedUrls.add(newUrl);
+                    final String downloadUrl = newUrl;
+                    final String returnUrl   = (oldUrl != null && !oldUrl.isBlank()
+                            && !oldUrl.equals(newUrl)) ? oldUrl : null;
+                    // Schedule on next pulse so the engine state is stable
+                    Platform.runLater(() -> {
+                        if (returnUrl != null) we.load(returnUrl);
+                        startDownload(downloadUrl);
+                        // Allow re-download of same URL after 5 seconds
+                        new java.util.Timer(true).schedule(new java.util.TimerTask() {
+                            public void run() { downloadedUrls.remove(downloadUrl); }
+                        }, 5000);
+                    });
+                }
                 return;
             }
-            // Show webview once a real page loads
-            lblSelectSite.setVisible(false);
-            wv.setVisible(true);
+
+            // Normal page navigation
+            Platform.runLater(() -> {
+                lblSelectSite.setVisible(false);
+                wv.setVisible(true);
+            });
         });
 
-        // Insert at index 0 — behind the placeholder label and downloads panel
         webContainer.getChildren().add(0, wv);
         StackPane.setAlignment(wv, Pos.CENTER);
     }
@@ -131,27 +141,30 @@ public class OnlineBooksController {
         row.setAlignment(Pos.CENTER_LEFT);
         row.setPrefHeight(60);
 
-        // Icon
         ImageView icon = new ImageView();
         icon.setFitWidth(36);
         icon.setFitHeight(36);
         icon.setPreserveRatio(true);
 
         if (site.getIconData() != null && site.getIconData().length > 0) {
-            try {
-                icon.setImage(new Image(new ByteArrayInputStream(site.getIconData())));
-            } catch (Exception ignored) {}
+            try { icon.setImage(new Image(new ByteArrayInputStream(site.getIconData()))); }
+            catch (Exception ignored) {}
         } else {
-            loadFaviconAsync(site.getUrl(), icon);
+            // Fetch favicon and also persist it to DB for next launch
+            loadFaviconAsync(site.getUrl(), icon, fetchedBytes -> {
+                if (fetchedBytes != null && fetchedBytes.length > 0) {
+                    site.setIconData(fetchedBytes);
+                    if (!site.isDefault()) service.updateSite(site);
+                    else persistDefaultSiteIcon(site, fetchedBytes);
+                }
+            });
         }
 
         Label lbl = new Label(site.getTitle());
         lbl.getStyleClass().add("site-title");
-
         row.getChildren().addAll(icon, lbl);
         row.setUserData(site);
 
-        // Left-click: load site
         row.setOnMouseClicked(e -> {
             if (e.getButton() == MouseButton.PRIMARY) {
                 activateSite(site, row);
@@ -159,25 +172,35 @@ public class OnlineBooksController {
                 showSiteContextMenu(site, row);
             }
         });
-
         return row;
+    }
+
+    /** Persist icon for a default site (update only icon_data, not url/title). */
+    private void persistDefaultSiteIcon(OnlineSite site, byte[] iconBytes) {
+        try (java.sql.PreparedStatement ps =
+                     com.quietpages.quietpages.db.DatabaseManager.getInstance()
+                             .getConnection()
+                             .prepareStatement(
+                                     "UPDATE online_sites SET icon_data=? WHERE id=?")) {
+            ps.setBytes(1, iconBytes);
+            ps.setInt(2, site.getId());
+            ps.executeUpdate();
+        } catch (Exception e) {
+            System.err.println("[Online] Failed to persist default icon: " + e.getMessage());
+        }
     }
 
     private void activateSite(OnlineSite site, HBox row) {
         activeSite = site;
-        // Highlight active
         siteListVBox.getChildren().forEach(n -> n.getStyleClass().remove("site-row-active"));
         row.getStyleClass().add("site-row-active");
-        // Load in WebView
         getEngine().load(site.getUrl());
     }
 
     private void showSiteContextMenu(OnlineSite site, Node anchor) {
         ContextMenu menu = new ContextMenu();
-
         MenuItem edit   = new MenuItem("  Edit");
         MenuItem remove = new MenuItem("  Remove");
-
         edit.setOnAction(e -> showAddSiteDialog(site));
         remove.setOnAction(e -> {
             service.removeSite(site.getId());
@@ -188,13 +211,11 @@ public class OnlineBooksController {
             }
             loadSites();
         });
-
         menu.getItems().addAll(edit, remove);
         menu.show(anchor, Side.BOTTOM, 0, 0);
     }
 
     // ── Toolbar ───────────────────────────────────────────────────────────────
-
     @FXML private void onAddSite()   { showAddSiteDialog(null); }
 
     @FXML private void onDownloads() {
@@ -208,19 +229,10 @@ public class OnlineBooksController {
         if (activeSite != null) getEngine().load(activeSite.getUrl());
     }
 
-    @FXML private void onRefresh() {
-        getEngine().reload();
-    }
-
-    @FXML private void onBack() {
-        getEngine().executeScript("history.back()");
-    }
-
-    @FXML private void onForward() {
-        getEngine().executeScript("history.forward()");
-    }
-
-    @FXML private void onInfo() { /* reserved for future use */ }
+    @FXML private void onRefresh()  { getEngine().reload(); }
+    @FXML private void onBack()     { getEngine().executeScript("history.back()"); }
+    @FXML private void onForward()  { getEngine().executeScript("history.forward()"); }
+    @FXML private void onInfo()     { /* reserved */ }
 
     // ── Add / Edit dialog ─────────────────────────────────────────────────────
     private void showAddSiteDialog(OnlineSite existing) {
@@ -235,7 +247,6 @@ public class OnlineBooksController {
         pane.getStyleClass().add("edit-dialog-pane");
         pane.setPrefWidth(460);
 
-        // ── Form ──────────────────────────────────────────────────────────────
         VBox form = new VBox(14);
         form.setPadding(new Insets(16));
 
@@ -269,8 +280,7 @@ public class OnlineBooksController {
         iconPreview.setFitHeight(48);
         iconPreview.setPreserveRatio(true);
         if (iconBytes[0] != null && iconBytes[0].length > 0) {
-            try { iconPreview.setImage(
-                    new Image(new ByteArrayInputStream(iconBytes[0]))); }
+            try { iconPreview.setImage(new Image(new ByteArrayInputStream(iconBytes[0]))); }
             catch (Exception ignored) {}
         }
         StackPane iconBox = new StackPane(iconPreview);
@@ -286,7 +296,7 @@ public class OnlineBooksController {
             fc.getExtensionFilters().add(
                     new FileChooser.ExtensionFilter("Image Files",
                             "*.png","*.jpg","*.jpeg","*.ico","*.webp"));
-            File f = fc.showOpenDialog(selectIconBtn.getScene().getWindow());
+            java.io.File f = fc.showOpenDialog(selectIconBtn.getScene().getWindow());
             if (f != null) {
                 try {
                     iconBytes[0] = Files.readAllBytes(f.toPath());
@@ -297,10 +307,13 @@ public class OnlineBooksController {
             }
         });
 
-        // Auto-load favicon on URL focus-out
-        urlField.focusedProperty().addListener((obs, was, isFocused) -> {
-            if (!isFocused && !urlField.getText().isBlank()) {
-                loadFaviconAsync(urlField.getText(), iconPreview);
+        // ── Auto-fetch icon when user moves focus away from URL field ──────
+        urlField.focusedProperty().addListener((obs, wasFocused, isNowFocused) -> {
+            // Trigger when focus LEAVES the URL field (user clicked elsewhere)
+            if (wasFocused && !isNowFocused && !urlField.getText().isBlank()) {
+                loadFaviconAsync(urlField.getText(), iconPreview, fetched -> {
+                    if (fetched != null) iconBytes[0] = fetched;
+                });
             }
         });
 
@@ -318,7 +331,6 @@ public class OnlineBooksController {
                 isEdit ? "Update" : "Add", ButtonBar.ButtonData.OK_DONE);
         pane.getButtonTypes().addAll(saveType,
                 new ButtonType("Close", ButtonBar.ButtonData.CANCEL_CLOSE));
-
         dialog.setDialogPane(pane);
 
         Optional<ButtonType> result = dialog.showAndWait();
@@ -347,7 +359,6 @@ public class OnlineBooksController {
     // ── Downloads panel ───────────────────────────────────────────────────────
     private void updateDownloadsPanel() {
         downloadsListVBox.getChildren().clear();
-
         if (downloads.isEmpty()) {
             lblNoDownloads.setVisible(true);
             lblNoDownloads.setManaged(true);
@@ -363,7 +374,7 @@ public class OnlineBooksController {
             Label nameLbl = new Label(entry.getFileName());
             nameLbl.getStyleClass().add("download-name");
             nameLbl.setWrapText(true);
-            nameLbl.setMaxWidth(290);
+            nameLbl.setMaxWidth(270);
 
             Label statusLbl = new Label(entry.getStatusLabel());
             statusLbl.getStyleClass().add(
@@ -375,44 +386,123 @@ public class OnlineBooksController {
         }
     }
 
-    // ── Download a file ───────────────────────────────────────────────────────
+    // ── Download file ─────────────────────────────────────────────────────────
     private void startDownload(String fileUrl) {
-        String fileName = fileUrl.contains("/")
+        // Decode URL-encoded filename
+        String rawName = fileUrl.contains("/")
                 ? fileUrl.substring(fileUrl.lastIndexOf('/') + 1) : fileUrl;
-        // Strip query params from filename
-        if (fileName.contains("?")) fileName = fileName.substring(0, fileName.indexOf('?'));
+        if (rawName.contains("?")) rawName = rawName.substring(0, rawName.indexOf('?'));
+
+        String decoded;
+        try { decoded = URLDecoder.decode(rawName, StandardCharsets.UTF_8); }
+        catch (Exception e) { decoded = rawName; }
+
+        // Remove illegal Windows filename characters
+        String fileName = decoded
+                .replace('\\', '_').replace('/', '_').replace(':', '_')
+                .replace('*', '_').replace('?', '_').replace('"', '_')
+                .replace('<', '_').replace('>', '_').replace('|', '_')
+                .trim();
+
+        // Truncate to 80 chars
+        if (fileName.length() > 80) {
+            int dotIdx = fileName.lastIndexOf('.');
+            String ext = dotIdx > 0 ? fileName.substring(dotIdx) : "";
+            fileName = fileName.substring(0, 80 - ext.length()) + ext;
+        }
 
         DownloadEntry entry = new DownloadEntry(fileName);
         downloads.add(0, entry);
+        // Show downloads panel automatically
         downloadsPanel.setVisible(true);
         downloadsPanel.setManaged(true);
         updateDownloadsPanel();
 
         final String finalFileName = fileName;
-        Task<File> task = new Task<>() {
-            @Override protected File call() throws Exception {
-                URL url = URI.create(fileUrl).toURL();
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestProperty("User-Agent",
-                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
-                conn.setConnectTimeout(15000);
-                conn.setReadTimeout(30000);
-                conn.connect();
+        final String finalUrl = fileUrl;
 
+        Task<java.io.File> task = new Task<>() {
+            @Override protected java.io.File call() throws Exception {
                 Path tmpDir = Path.of(System.getProperty("java.io.tmpdir"), "QuietPages");
                 Files.createDirectories(tmpDir);
                 Path dest = tmpDir.resolve(finalFileName);
 
-                try (InputStream in  = conn.getInputStream();
-                     OutputStream out = Files.newOutputStream(dest)) {
+                // Follow up to 10 redirects manually so we get the final URL
+                String currentUrl = finalUrl;
+                HttpURLConnection conn = null;
+                for (int redirects = 0; redirects < 10; redirects++) {
+                    conn = (HttpURLConnection) URI.create(currentUrl).toURL().openConnection();
+                    conn.setRequestMethod("GET");
+                    conn.setRequestProperty("User-Agent",
+                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+                                    "AppleWebKit/537.36 (KHTML, like Gecko) " +
+                                    "Chrome/120.0.0.0 Safari/537.36");
+                    conn.setRequestProperty("Accept",
+                            "application/epub+zip,application/pdf,application/octet-stream,*/*");
+                    conn.setRequestProperty("Accept-Language", "en-US,en;q=0.9");
+                    conn.setConnectTimeout(20000);
+                    conn.setReadTimeout(120000);
+                    conn.setInstanceFollowRedirects(false); // handle manually
+                    conn.connect();
+
+                    int code = conn.getResponseCode();
+                    if (code == 301 || code == 302 || code == 303
+                            || code == 307 || code == 308) {
+                        String loc = conn.getHeaderField("Location");
+                        conn.disconnect();
+                        if (loc == null) break;
+                        // Handle relative redirects
+                        if (loc.startsWith("/")) {
+                            URL base = URI.create(currentUrl).toURL();
+                            loc = base.getProtocol() + "://" + base.getHost() + loc;
+                        }
+                        currentUrl = loc;
+                        continue;
+                    }
+                    if (code == 200) break;
+                    conn.disconnect();
+                    throw new IOException("HTTP " + code + " for: " + currentUrl);
+                }
+
+                if (conn == null) throw new IOException("No connection established");
+
+                long contentLength = conn.getContentLengthLong();
+                try (InputStream  in  = new BufferedInputStream(conn.getInputStream(), 65536);
+                     OutputStream out = new BufferedOutputStream(
+                             Files.newOutputStream(dest), 65536)) {
                     in.transferTo(out);
+                }
+                conn.disconnect();
+
+                long fileSize = Files.size(dest);
+                System.out.println("[Download] Saved " + fileSize + " bytes → " + dest);
+
+                // Reject obviously incomplete files
+                if (fileSize < 1024) {
+                    Files.deleteIfExists(dest);
+                    throw new IOException("Downloaded file too small (" + fileSize
+                            + " bytes) — likely an error page, not an EPUB");
+                }
+
+                // Verify EPUB is a valid ZIP
+                if (finalFileName.toLowerCase().endsWith(".epub")) {
+                    try (java.util.zip.ZipFile zip = new java.util.zip.ZipFile(dest.toFile())) {
+                        if (zip.size() == 0) {
+                            Files.deleteIfExists(dest);
+                            throw new IOException("Downloaded EPUB has no entries");
+                        }
+                    } catch (java.util.zip.ZipException ze) {
+                        Files.deleteIfExists(dest);
+                        throw new IOException("Downloaded file is not a valid EPUB: "
+                                + ze.getMessage());
+                    }
                 }
                 return dest.toFile();
             }
         };
 
         task.setOnSucceeded(e -> {
-            File downloaded = task.getValue();
+            java.io.File downloaded = task.getValue();
             com.quietpages.quietpages.model.Book book =
                     libraryService.importFile(downloaded);
             Platform.runLater(() -> {
@@ -426,8 +516,7 @@ public class OnlineBooksController {
         task.setOnFailed(e -> Platform.runLater(() -> {
             entry.setStatus(DownloadEntry.Status.FAILED);
             updateDownloadsPanel();
-            System.err.println("[Download] Failed: " +
-                    task.getException().getMessage());
+            System.err.println("[Download] Failed: " + task.getException().getMessage());
         }));
 
         Thread t = new Thread(task);
@@ -436,11 +525,12 @@ public class OnlineBooksController {
     }
 
     // ── Favicon helpers ───────────────────────────────────────────────────────
-    private void loadFaviconAsync(String siteUrl, ImageView target) {
+    @FunctionalInterface
+    interface IconCallback { void onFetched(byte[] bytes); }
+
+    private void loadFaviconAsync(String siteUrl, ImageView target, IconCallback callback) {
         Task<byte[]> task = new Task<>() {
-            @Override protected byte[] call() {
-                return fetchFaviconBytes(siteUrl);
-            }
+            @Override protected byte[] call() { return fetchFaviconBytes(siteUrl); }
         };
         task.setOnSucceeded(e -> Platform.runLater(() -> {
             byte[] bytes = task.getValue();
@@ -448,7 +538,11 @@ public class OnlineBooksController {
                 try { target.setImage(new Image(new ByteArrayInputStream(bytes))); }
                 catch (Exception ignored) {}
             }
+            if (callback != null) callback.onFetched(bytes);
         }));
+        task.setOnFailed(e -> {
+            if (callback != null) Platform.runLater(() -> callback.onFetched(null));
+        });
         Thread t = new Thread(task);
         t.setDaemon(true);
         t.start();
@@ -457,29 +551,44 @@ public class OnlineBooksController {
     private byte[] fetchFaviconBytes(String siteUrl) {
         try {
             if (!siteUrl.startsWith("http")) siteUrl = "https://" + siteUrl;
+            // Encode spaces if present
+            siteUrl = siteUrl.replace(" ", "%20");
             URL url = URI.create(siteUrl).toURL();
-            String faviconUrl = url.getProtocol() + "://" + url.getHost() + "/favicon.ico";
-            HttpURLConnection conn = (HttpURLConnection)
-                    URI.create(faviconUrl).toURL().openConnection();
-            conn.setConnectTimeout(3000);
-            conn.setReadTimeout(3000);
-            conn.setRequestProperty("User-Agent", "Mozilla/5.0");
-            conn.connect();
-            if (conn.getResponseCode() == 200) {
-                try (InputStream is = conn.getInputStream()) {
-                    return is.readAllBytes();
-                }
+            String base = url.getProtocol() + "://" + url.getHost();
+
+            // Try multiple locations — Google's service is most reliable fallback
+            String[] candidates = {
+                    base + "/favicon.ico",
+                    base + "/favicon.png",
+                    base + "/apple-touch-icon.png",
+                    base + "/apple-touch-icon-precomposed.png",
+                    "https://www.google.com/s2/favicons?domain=" + url.getHost() + "&sz=64"
+            };
+
+            for (String candidate : candidates) {
+                try {
+                    HttpURLConnection conn = (HttpURLConnection)
+                            URI.create(candidate).toURL().openConnection();
+                    conn.setConnectTimeout(5000);
+                    conn.setReadTimeout(5000);
+                    conn.setRequestProperty("User-Agent",
+                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+                    conn.setInstanceFollowRedirects(true);
+                    conn.connect();
+                    if (conn.getResponseCode() == 200) {
+                        try (InputStream is = conn.getInputStream()) {
+                            byte[] bytes = is.readAllBytes();
+                            if (bytes.length > 64) return bytes;  // reject tiny/empty responses
+                        }
+                    }
+                    conn.disconnect();
+                } catch (Exception ignored) {}
             }
         } catch (Exception ignored) {}
         return null;
     }
 
-    // ── WebView accessors (avoid casting at every call site) ──────────────────
-    private javafx.scene.web.WebView getWebView() {
-        return (javafx.scene.web.WebView) webViewObj;
-    }
-
-    private javafx.scene.web.WebEngine getEngine() {
-        return (javafx.scene.web.WebEngine) engineObj;
-    }
+    // ── WebView accessors ─────────────────────────────────────────────────────
+    private javafx.scene.web.WebView   getWebView() { return (javafx.scene.web.WebView)   webViewObj; }
+    private javafx.scene.web.WebEngine getEngine()  { return (javafx.scene.web.WebEngine) engineObj;  }
 }
