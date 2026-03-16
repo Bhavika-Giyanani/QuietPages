@@ -48,7 +48,7 @@ Open VS Code → Extensions (`Ctrl+Shift+X`) → install both:
 
 ## Step 4 — Open the Project
 
-1. Get the project folder from Bhavini
+1. Get the project folder
 2. **File → Open Folder** → select the `QuietPages` folder (the one containing `pom.xml`)
 3. VS Code will prompt to import as a Maven project — click **Yes**
 4. Wait for the Java extension to finish indexing (status bar at the bottom shows progress)
