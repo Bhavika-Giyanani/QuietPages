@@ -5,61 +5,77 @@
 <?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21"
-            xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.quietpages.quietpages.HelloController"
-            fx:id="rootPane"
-            styleClass="root-pane">
+    xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.quietpages.quietpages.HelloController" fx:id="rootPane" styleClass="root-pane">
 
+    <!-- ── Left sidebar ─────────────────────────────────────────────────── -->
     <left>
-        <VBox fx:id="sidebar" styleClass="sidebar" minWidth="48" maxWidth="48">
+        <VBox fx:id="sidebar" styleClass="sidebar" minWidth="48" prefWidth="48">
 
-            <Button fx:id="btnHome" styleClass="nav-btn" onAction="#onHome">
-                <graphic><FontIcon iconLiteral="fas-home" iconSize="20"/></graphic>
-                <tooltip><Tooltip text="Home"/></tooltip>
-            </Button>
-
-            <Button fx:id="btnLibrary" styleClass="nav-btn" onAction="#onLibrary">
-                <graphic><FontIcon iconLiteral="fas-book" iconSize="20"/></graphic>
-                <tooltip><Tooltip text="Library"/></tooltip>
-            </Button>
-
-            <Button fx:id="btnCollections" styleClass="nav-btn" onAction="#onCollections">
-                <graphic><FontIcon iconLiteral="fas-list" iconSize="20"/></graphic>
-                <tooltip><Tooltip text="Collections"/></tooltip>
-            </Button>
-
-            <Button fx:id="btnOnlineBooks" styleClass="nav-btn" onAction="#onOnlineBooks">
-                <graphic><FontIcon iconLiteral="fas-globe" iconSize="20"/></graphic>
-                <tooltip><Tooltip text="Online Books"/></tooltip>
-            </Button>
-
-            <Region VBox.vgrow="ALWAYS"/>
-
-            <Button styleClass="nav-btn">
-                <graphic><FontIcon iconLiteral="fas-gift" iconSize="20"/></graphic>
-                <tooltip><Tooltip text="Premium"/></tooltip>
-            </Button>
-
-            <Button fx:id="btnSettings" styleClass="nav-btn" onAction="#onSettings">
-                <graphic><FontIcon iconLiteral="fas-cog" iconSize="20"/></graphic>
-                <tooltip><Tooltip text="Settings"/></tooltip>
+            <!-- Hamburger toggle — top of sidebar, same as teammate's menuButton -->
+            <Button fx:id="btnMenuToggle" styleClass="nav-btn" onAction="#onMenuToggle">
+                <graphic>
+                    <FontIcon iconLiteral="fas-bars" iconSize="20"/>
+                </graphic>
+                <tooltip>
+                    <Tooltip text="Expand / Collapse"/>
+                </tooltip>
             </Button>
 
             <Separator styleClass="nav-separator"/>
 
-            <Button fx:id="btnThemes" styleClass="nav-btn">
-                <graphic><FontIcon iconLiteral="fas-sun" iconSize="20"/></graphic>
-                <tooltip><Tooltip text="Themes"/></tooltip>
+            <!-- Nav buttons — icon + hidden label shown when expanded -->
+            <Button fx:id="btnHome" styleClass="nav-btn" onAction="#onHome">
+                <graphic>
+                    <FontIcon iconLiteral="fas-home" iconSize="20"/>
+                </graphic>
+                <tooltip>
+                    <Tooltip text="Home"/>
+                </tooltip>
             </Button>
 
-            <Button fx:id="btnConnect" styleClass="nav-btn">
-                <graphic><FontIcon iconLiteral="fas-link" iconSize="20"/></graphic>
-                <tooltip><Tooltip text="Connect"/></tooltip>
+            <Button fx:id="btnLibrary" styleClass="nav-btn" onAction="#onLibrary">
+                <graphic>
+                    <FontIcon iconLiteral="fas-book" iconSize="20"/>
+                </graphic>
+                <tooltip>
+                    <Tooltip text="Library"/>
+                </tooltip>
+            </Button>
+
+            <Button fx:id="btnCollections" styleClass="nav-btn" onAction="#onCollections">
+                <graphic>
+                    <FontIcon iconLiteral="fas-list" iconSize="20"/>
+                </graphic>
+                <tooltip>
+                    <Tooltip text="Collections"/>
+                </tooltip>
+            </Button>
+
+            <Button fx:id="btnOnlineBooks" styleClass="nav-btn" onAction="#onOnlineBooks">
+                <graphic>
+                    <FontIcon iconLiteral="fas-globe" iconSize="20"/>
+                </graphic>
+                <tooltip>
+                    <Tooltip text="Online Books"/>
+                </tooltip>
+            </Button>
+
+            <!-- Spacer pushes settings to bottom -->
+            <Region VBox.vgrow="ALWAYS"/>
+
+            <Button fx:id="btnSettings" styleClass="nav-btn" onAction="#onSettings">
+                <graphic>
+                    <FontIcon iconLiteral="fas-cog" iconSize="20"/>
+                </graphic>
+                <tooltip>
+                    <Tooltip text="Settings"/>
+                </tooltip>
             </Button>
 
         </VBox>
     </left>
 
+    <!-- ── Content area ──────────────────────────────────────────────────── -->
     <center>
         <StackPane fx:id="contentArea" styleClass="content-area"/>
     </center>

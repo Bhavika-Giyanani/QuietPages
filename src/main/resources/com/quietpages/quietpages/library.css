@@ -719,3 +719,140 @@
     -fx-text-fill: -qp-text-primary;
     -fx-padding: 0 0 8 0;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   Reader Tab Styles
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Root ────────────────────────────────────────────────────────────────── */
+.reader-root {
+    -fx-background-color: #0D0D0D;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────────────── */
+.reader-toolbar {
+    -fx-background-color: #1A1A1A;
+    -fx-border-color: transparent transparent #2A2A2A transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-min-height: 48;
+    -fx-max-height: 48;
+    -fx-padding: 0 8 0 4;
+    -fx-spacing: 2;
+}
+
+.reader-toolbar-btn {
+    -fx-background-color: transparent;
+    -fx-pref-width: 40;
+    -fx-pref-height: 40;
+    -fx-cursor: hand;
+    -fx-padding: 0;
+    -fx-background-radius: 4;
+}
+
+.reader-toolbar-btn .ikonli-font-icon {
+    -fx-icon-color: #888888;
+}
+
+.reader-toolbar-btn:hover {
+    -fx-background-color: rgba(255,255,255,0.07);
+}
+
+.reader-toolbar-btn:hover .ikonli-font-icon {
+    -fx-icon-color: #DDDDDD;
+}
+
+.reader-toolbar-btn:disabled .ikonli-font-icon {
+    -fx-icon-color: #444444;
+}
+
+.reader-book-title {
+    -fx-text-fill: #CCCCCC;
+    -fx-font-size: 14px;
+    -fx-padding: 0 0 0 8;
+}
+
+/* ── Reading area ────────────────────────────────────────────────────────── */
+.reader-stack {
+    -fx-background-color: #0D0D0D;
+}
+
+.reader-pages {
+    -fx-background-color: #0D0D0D;
+    -fx-spacing: 0;
+}
+
+/* ── Navigation buttons ──────────────────────────────────────────────────── */
+.reader-nav-btn {
+    -fx-background-color: rgba(0,0,0,0.0);
+    -fx-pref-width: 44;
+    -fx-min-width: 44;
+    -fx-pref-height: 80;
+    -fx-cursor: hand;
+    -fx-background-radius: 0;
+    -fx-padding: 0;
+    -fx-border-width: 0;
+}
+
+.reader-nav-btn .ikonli-font-icon {
+    -fx-icon-color: rgba(255,255,255,0.15);
+}
+
+.reader-nav-btn:hover {
+    -fx-background-color: rgba(255,255,255,0.05);
+}
+
+.reader-nav-btn:hover .ikonli-font-icon {
+    -fx-icon-color: rgba(255,255,255,0.55);
+}
+
+.reader-nav-left  { -fx-background-radius: 0 4 4 0; }
+.reader-nav-right { -fx-background-radius: 4 0 0 4; }
+
+/* ── Status bar ──────────────────────────────────────────────────────────── */
+.reader-statusbar {
+    -fx-background-color: #0D0D0D;
+    -fx-border-color: #1E1E1E transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-min-height: 32;
+    -fx-max-height: 32;
+    -fx-padding: 0 16 0 16;
+}
+
+.reader-status-breadcrumb {
+    -fx-text-fill: #555555;
+    -fx-font-size: 12px;
+}
+
+.reader-status-progress {
+    -fx-text-fill: #555555;
+    -fx-font-size: 12px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   Settings Tab Styles
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.settings-theme-btn {
+    -fx-background-color: -qp-bg-input;
+    -fx-text-fill: -qp-text-primary;
+    -fx-border-color: -qp-border-input;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-border-width: 1;
+    -fx-padding: 10 20 10 20;
+    -fx-font-size: 13px;
+    -fx-cursor: hand;
+    -fx-min-width: 100;
+}
+
+.settings-theme-btn:hover {
+    -fx-background-color: -qp-bg-menu-hover;
+    -fx-border-color: -qp-text-secondary;
+}
+
+.settings-theme-btn-active {
+    -fx-background-color: -qp-accent-light;
+    -fx-border-color: -qp-accent;
+    -fx-text-fill: -qp-accent;
+    -fx-font-weight: bold;
+}
